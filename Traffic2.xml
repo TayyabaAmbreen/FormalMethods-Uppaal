@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+
+chan get_right, released_right;
+
+const int N = 4;          // Number of signals.
+typedef int[0,N-1] pid_t; // Process IDs.
+
+// Task queue
+int t=0;
+int[0,N] len = N;
+
+ int get_signal()
+{
+  return t;
+}
+
+ void next_signal()
+{
+   t+=1;
+}
+
+ void reset()
+{
+  if(t&gt;=N)
+  {
+    t=0;
+  }
+}
+
+</declaration>
+	<template>
+		<name x="5" y="5">Signal</name>
+		<parameter>const pid_t id</parameter>
+		<declaration>// Place local declarations here.
+clock x;</declaration>
+		<location id="id0" x="697" y="42">
+			<name x="722" y="34">Stop</name>
+			<label kind="invariant" x="687" y="59">x&lt;=20</label>
+		</location>
+		<location id="id1" x="501" y="-110">
+			<name x="493" y="-153">Go</name>
+			<label kind="invariant" x="484" y="-85">x&lt;=10</label>
+		</location>
+		<location id="id2" x="314" y="25">
+			<name x="280" y="-17">begin</name>
+		</location>
+		<init ref="id2"/>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id2"/>
+			<label kind="guard" x="484" y="169">x&gt;=20</label>
+			<label kind="assignment" x="561" y="127">reset(),x=0</label>
+			<nail x="501" y="161"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="guard" x="620" y="-76">x&gt;=10</label>
+			<label kind="synchronisation" x="612" y="-51">released_right!</label>
+			<label kind="assignment" x="544" y="-8">next_signal()</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id1"/>
+			<label kind="guard" x="323" y="-93">get_signal()==id</label>
+			<label kind="synchronisation" x="357" y="-68">get_right!</label>
+			<label kind="assignment" x="391" y="-17">x=0</label>
+		</transition>
+	</template>
+	<template>
+		<name>Right</name>
+		<location id="id3" x="-170" y="-195">
+			<name x="-180" y="-229">Yes</name>
+		</location>
+		<location id="id4" x="-357" y="-195">
+			<name x="-367" y="-229">No</name>
+		</location>
+		<init ref="id4"/>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-306" y="-136">released_right?</label>
+			<nail x="-263" y="-136"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="-297" y="-280">get_right?</label>
+			<nail x="-263" y="-255"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+// List one or more processes to be composed into a system.
+system Signal,Right;</system>
+	<queries>
+		<query>
+			<formula>E&lt;&gt; (Signal(0).Go || Signal(1).Go ||  Signal(2).Go ||  Signal(3).Go)
+			</formula>
+			<comment>Liveness: Does there exists a future state when either of the signals will be at Go state?
+			</comment>
+		</query>
+		<query>
+			<formula>A[] Right.Yes == (Signal(0).Go || Signal(1).Go || Signal(2).Go || Signal(3).Go)
+			</formula>
+			<comment>Deadlock Avoidance: Whenever Right is Yes, either Signal1, Signal2, Signal3 or Signal4 is at Go state.
+			</comment>
+		</query>
+		<query>
+			<formula>A[] not (Signal(0).Go &amp;&amp; Signal(1).Go &amp;&amp; Signal(2).Go &amp;&amp; Signal(3).Go)
+			</formula>
+			<comment>MutEx: Never (Not in any of the future states) All the Signals will be at Go state.
+			</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; deadlock
+			</formula>
+			<comment>Does there exist any deadlock?
+			</comment>
+		</query>
+		<query>
+			<formula>A[] not deadlock
+			</formula>
+			<comment>We are checking the possible deadlock here.
+			</comment>
+		</query>
+	</queries>
+</nta>
